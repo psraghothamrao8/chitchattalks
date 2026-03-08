@@ -50,12 +50,8 @@ function App() {
       setupConnectionListeners(conn, codeToUse);
     });
 
-    newPeer.on('error', (err) => {
-      if (err.type === 'unavailable-id') {
-        setError('Code in use');
-      } else {
-        setError('Error: ' + err.message);
-      }
+    newPeer.on('error', (err: any) => {
+      setError(err.type === 'unavailable-id' ? 'Code in use' : 'Error: ' + err.message);
       setIsConnecting(false);
     });
   };
@@ -80,14 +76,14 @@ function App() {
         setIsConnecting(false);
       });
 
-      conn.on('error', (err) => {
-        setError('Fail: ' + err.message);
+      conn.on('error', () => {
+        setError('Connection failed');
         setIsConnecting(false);
       });
     });
 
-    newPeer.on('error', (err) => {
-      setError('Error: ' + err.message);
+    newPeer.on('error', () => {
+      setError('Peer error');
       setIsConnecting(false);
     });
   };
@@ -103,9 +99,7 @@ function App() {
       }
     });
 
-    conn.on('close', () => {
-      setConnection(null);
-    });
+    conn.on('close', () => setConnection(null));
   };
 
   const sendMessage = async (type: MessageType, content: string | ArrayBuffer, fileName?: string, fileType?: string) => {
@@ -145,104 +139,102 @@ function App() {
 
   const renderContent = (msg: ChatMessage) => {
     if (msg.type === 'text') return msg.content as string;
-    
     const blob = new Blob([msg.content], { type: msg.fileType });
     const url = URL.createObjectURL(blob);
-    
-    if (msg.type === 'image') return <img src={url} className="media-img" alt="" />;
+    if (msg.type === 'image') return <img src={url} className="media-content" alt="" />;
     return (
-      <a href={url} download={msg.fileName} className="file-link">
+      <a href={url} download={msg.fileName} className="action-icon" style={{ fontSize: '0.85rem' }}>
         <FileIcon size={16} /> {msg.fileName}
       </a>
     );
   };
 
   return (
-    <div className="app-container">
+    <div className="app-wrapper">
       {view === 'home' ? (
-        <div className="home-container">
-          <div className="home-card">
-            <div className="home-header">
+        <div className="home-screen">
+          <div className="home-content">
+            <div className="brand">
               <h1>ChitChat</h1>
-              <p>Secure Peer-to-Peer Messaging</p>
+              <p>Peer-to-Peer & Fully Encrypted</p>
             </div>
 
-            {error && <div style={{ color: 'red', fontSize: '13px', textAlign: 'center' }}>{error}</div>}
+            {error && <div style={{ color: '#ef4444', fontSize: '0.8rem', textAlign: 'center', fontWeight: '600' }}>{error}</div>}
 
-            <div className="input-group">
-              <label>NAME</label>
-              <input 
-                className="input-field" 
-                placeholder="Enter your name"
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
-              />
+            <div className="form-group">
+              <div className="input-container">
+                <label>Display Name</label>
+                <input 
+                  className="base-input" 
+                  placeholder="Your name"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                />
+              </div>
+
+              <div className="input-container">
+                <label>Session Code</label>
+                <input 
+                  className="base-input" 
+                  placeholder="CODE or leave blank"
+                  value={sessionCode}
+                  onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
+                />
+              </div>
             </div>
 
-            <div className="input-group">
-              <label>SESSION CODE (OPTIONAL FOR NEW)</label>
-              <input 
-                className="input-field" 
-                placeholder="ABCXYZ"
-                value={sessionCode}
-                onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
-              />
-            </div>
-
-            <div className="button-row">
+            <div className="button-group">
               <button className="btn btn-primary" onClick={handleCreateSession} disabled={isConnecting}>
-                {isConnecting ? '...' : 'Create Room'}
+                {isConnecting ? '...' : 'Create'}
               </button>
               <button className="btn btn-secondary" onClick={handleJoinSession} disabled={isConnecting}>
-                Join Room
+                Join
               </button>
             </div>
           </div>
         </div>
       ) : (
-        <div className="chat-container">
-          <div className="chat-header">
-            <div className="header-left">
-              <button className="icon-btn" onClick={() => setView('home')}><ChevronLeft size={20} /></button>
-              <div className="session-info">
-                <span>{connection ? 'Connected' : 'Waiting...'}</span>
-                <div className="session-code-badge" onClick={() => navigator.clipboard.writeText(sessionCode)}>
-                  CODE: {sessionCode} <Copy size={10} />
-                </div>
+        <div className="chat-view">
+          <div className="chat-nav">
+            <div className="nav-left">
+              <button className="action-icon" onClick={() => setView('home')}><ChevronLeft size={24} /></button>
+              <div className="room-info">
+                <h2>{connection ? 'Connected' : 'Waiting...'}</h2>
+                <p onClick={() => navigator.clipboard.writeText(sessionCode)}>CODE: {sessionCode} <Copy size={10} /></p>
               </div>
             </div>
           </div>
 
-          <div className="chat-messages">
+          <div className="msg-container">
             {messages.map((msg, i) => {
               const isMe = msg.senderId === peer?.id;
               return (
-                <div key={msg.id} className={`message-wrap ${isMe ? 'me' : 'other'}`}>
+                <div key={msg.id} className={`msg-row ${isMe ? 'me' : 'other'}`}>
                   {!isMe && (i === 0 || messages[i-1].senderId !== msg.senderId) && (
-                    <div className="sender-name">{msg.senderName}</div>
+                    <div className="msg-meta" style={{ marginBottom: '2px' }}>{msg.senderName}</div>
                   )}
-                  <div className="bubble">{renderContent(msg)}</div>
-                  <div className="time">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                  <div className="msg-bubble">{renderContent(msg)}</div>
+                  <div className="msg-meta">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                 </div>
               );
             })}
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="chat-input-area">
+          <div className="input-footer">
             <input type="file" style={{ display: 'none' }} ref={fileInputRef} onChange={handleFileUpload} />
-            <button className="icon-btn" onClick={() => fileInputRef.current?.click()}>
+            <button className="action-icon" onClick={() => fileInputRef.current?.click()}>
               <Paperclip size={20} />
             </button>
             <input 
-              className="input-box" 
+              className="msg-input-field" 
               placeholder="Message..." 
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage('text', inputValue)}
               disabled={!connection}
             />
-            <button className="icon-btn" style={{ color: 'var(--primary)' }} onClick={() => sendMessage('text', inputValue)} disabled={!connection}>
+            <button className="action-icon" style={{ color: 'var(--primary)' }} onClick={() => sendMessage('text', inputValue)} disabled={!connection || !inputValue.trim()}>
               <Send size={20} />
             </button>
           </div>
