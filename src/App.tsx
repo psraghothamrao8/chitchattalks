@@ -19,6 +19,7 @@ function App() {
   const [inputValue, setInputValue] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState('');
+  const [isOwner, setIsOwner] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -51,6 +52,7 @@ function App() {
       setPeer(newPeer);
       setView('chat');
       setIsConnecting(false);
+      setIsOwner(true); // Creator is owner
     });
 
     newPeer.on('connection', (conn) => {
@@ -84,6 +86,7 @@ function App() {
         setupConnectionListeners(conn, sessionCode.toUpperCase());
         setView('chat');
         setIsConnecting(false);
+        setIsOwner(false); // Joiner is not owner
       });
 
       conn.on('error', () => {
@@ -116,6 +119,8 @@ function App() {
         await localforage.createInstance({ name: 'ChitChatTalks', storeName: 'messages' }).removeItem(currentSession);
         setMessages([]);
         leaveSessionDirect();
+      } else if (data.type === 'transfer-owner') {
+        setIsOwner(true);
       } else if (data.type) {
         setMessages((prev) => [...prev, data]);
         await saveMessage(currentSession, data);
@@ -170,9 +175,19 @@ function App() {
     setMessages([]);
     setSessionCode('');
     setView('home');
+    setIsOwner(false);
+  };
+
+  const leaveSessionWithTransfer = () => {
+    if (isOwner && connection) {
+      // Transfer ownership before leaving
+      connection.send({ type: 'transfer-owner' });
+    }
+    leaveSessionDirect();
   };
 
   const deleteSession = async () => {
+    if (!isOwner) return;
     if (!window.confirm('Delete session for everyone? All messages will be lost.')) return;
     
     if (connection) {
@@ -245,19 +260,30 @@ function App() {
         <div className="chat-view">
           <div className="chat-nav">
             <div className="nav-left">
-              <button className="action-icon" onClick={leaveSessionDirect}><ChevronLeft size={24} /></button>
+              <button className="action-icon" onClick={leaveSessionWithTransfer}><ChevronLeft size={24} /></button>
               <div className="room-info">
                 <h2>{connection ? 'Connected' : 'Waiting...'}</h2>
                 <p onClick={() => navigator.clipboard.writeText(sessionCode)}>CODE: {sessionCode} <Copy size={10} /></p>
               </div>
             </div>
-            <button 
-              className="btn btn-secondary" 
-              style={{ height: '2.2rem', padding: '0 0.75rem', fontSize: '0.75rem', borderColor: '#ef4444', color: '#ef4444' }}
-              onClick={deleteSession}
-            >
-              Delete Session
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                className="btn btn-secondary" 
+                style={{ height: '2.2rem', padding: '0 0.75rem', fontSize: '0.75rem' }}
+                onClick={leaveSessionWithTransfer}
+              >
+                Leave
+              </button>
+              {isOwner && (
+                <button 
+                  className="btn btn-secondary" 
+                  style={{ height: '2.2rem', padding: '0 0.75rem', fontSize: '0.75rem', borderColor: '#ef4444', color: '#ef4444' }}
+                  onClick={deleteSession}
+                >
+                  Delete Room
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="msg-container">
