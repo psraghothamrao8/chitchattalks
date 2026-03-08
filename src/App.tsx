@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Peer from 'peerjs';
 import type { DataConnection } from 'peerjs';
-import { LogIn, Send, Paperclip, File as FileIcon, Copy, LogOut } from 'lucide-react';
+import { LogIn, Send, Paperclip, File as FileIcon, Copy, LogOut, MessageCircle, ChevronLeft } from 'lucide-react';
 import type { ChatMessage, MessageType } from './lib/types';
 import { saveMessage, getMessages } from './lib/storage';
 import './App.css'; // Just clean up the default
@@ -52,14 +52,14 @@ function App() {
     });
 
     newPeer.on('error', (err) => {
-      setError('Failed to create session: ' + err.message);
+      setError('Failed to create: ' + err.message);
       setIsConnecting(false);
     });
   };
 
   const handleJoinSession = () => {
     if (!userName.trim() || !sessionCode.trim()) {
-      setError('Please enter your name and a session code');
+      setError('Enter name and session code');
       return;
     }
     setIsConnecting(true);
@@ -79,19 +79,18 @@ function App() {
       });
 
       conn.on('error', (err) => {
-        setError('Failed to connect: ' + err.message);
+        setError('Connection failed: ' + err.message);
         setIsConnecting(false);
       });
     });
 
     newPeer.on('error', (err) => {
-      setError('Connection error: ' + err.message);
+      setError('Error: ' + err.message);
       setIsConnecting(false);
     });
   };
 
   const setupConnectionListeners = async (conn: DataConnection, currentSession: string) => {
-    // Load history
     const history = await getMessages(currentSession);
     setMessages(history);
 
@@ -107,7 +106,8 @@ function App() {
     });
 
     conn.on('close', () => {
-      setError('Connection closed by peer');
+      setError('Peer disconnected');
+      setConnection(null);
     });
   };
 
@@ -179,13 +179,13 @@ function App() {
        }
        return (
          <a href={url} download={msg.fileName} className="message-file">
-           <FileIcon size={20} />
+           <FileIcon size={18} />
            <span>{msg.fileName}</span>
          </a>
        );
     }
     
-    return <span>Unsupported message format</span>;
+    return <span>Unsupported format</span>;
   };
 
   return (
@@ -193,49 +193,54 @@ function App() {
       {view === 'home' ? (
         <div className="home-container">
           <div className="home-card">
-            <h1>ChitChatTalks</h1>
-            <p>End-to-end encrypted P2P communication</p>
+            <div className="home-header">
+              <h1><MessageCircle size={28} color="var(--primary)" /> ChitChat</h1>
+              <p>Secure peer-to-peer messaging</p>
+            </div>
             
-            {error && <div style={{ color: '#ef4444', marginBottom: '1rem', fontSize: '0.9rem' }}>{error}</div>}
+            {error && <div style={{ color: '#ef4444', fontSize: '0.85rem', textAlign: 'center', backgroundColor: '#fef2f2', padding: '0.5rem', borderRadius: '8px' }}>{error}</div>}
 
             <div className="input-group">
               <label>Your Name</label>
               <input 
                 type="text" 
                 className="input-field" 
-                placeholder="Enter your name"
+                placeholder="E.g. Alex"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreateSession()}
               />
             </div>
 
             <button 
               className="btn-primary" 
               onClick={handleCreateSession}
-              disabled={isConnecting}
+              disabled={isConnecting || !userName.trim()}
             >
-              <LogIn size={20} />
-              {isConnecting ? 'Creating...' : 'Create New Session'}
+              <LogIn size={18} />
+              {isConnecting ? 'Connecting...' : 'New Session'}
             </button>
 
-            <div className="divider">OR</div>
+            <div className="divider">OR JOIN</div>
 
             <div className="input-group">
               <label>Session Code</label>
               <input 
                 type="text" 
                 className="input-field" 
-                placeholder="Enter session code to join"
+                placeholder="Enter 6-digit code"
                 value={sessionCode}
                 onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
-                style={{ textTransform: 'uppercase' }}
+                style={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 'bold' }}
+                maxLength={6}
+                onKeyDown={(e) => e.key === 'Enter' && handleJoinSession()}
               />
             </div>
 
             <button 
               className="btn-secondary" 
               onClick={handleJoinSession}
-              disabled={isConnecting}
+              disabled={isConnecting || !userName.trim() || !sessionCode.trim()}
             >
               Join Session
             </button>
@@ -245,29 +250,43 @@ function App() {
         <div className="chat-container">
           <div className="chat-header">
             <div className="chat-header-info">
-              <button className="icon-btn" onClick={leaveSession} title="Leave Session">
-                <LogOut size={20} />
+              <button className="back-btn" onClick={leaveSession} title="Leave">
+                <ChevronLeft size={24} />
               </button>
-              <div>
-                <div style={{ fontWeight: 600 }}>{connection ? 'Connected' : 'Waiting for peer...'}</div>
+              <div className="header-text">
+                <div className="header-title">
+                  {connection ? 'Connected' : 'Waiting...'}
+                  <div className={`status-dot ${!connection ? 'disconnected' : ''}`}></div>
+                </div>
                 <div 
-                  className="session-code" 
+                  className="session-badge" 
                   onClick={() => navigator.clipboard.writeText(sessionCode)}
-                  title="Click to copy"
+                  title="Copy code"
                 >
-                  Code: {sessionCode} <Copy size={12} style={{ display: 'inline', marginLeft: '4px' }} />
+                  Code: <strong>{sessionCode}</strong> <Copy size={12} />
                 </div>
               </div>
             </div>
-            <div className={`status-dot ${!connection ? 'disconnected' : ''}`} title={connection ? 'Connected' : 'Waiting'}></div>
+            <button className="back-btn" onClick={leaveSession} title="Disconnect" style={{ color: '#ef4444' }}>
+              <LogOut size={20} />
+            </button>
           </div>
 
           <div className="chat-messages">
-            {messages.map((msg) => {
+            {messages.length === 0 && (
+              <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: '2rem', fontSize: '0.9rem' }}>
+                <MessageCircle size={32} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
+                <p>No messages yet.</p>
+                {!connection && <p style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>Share code <b>{sessionCode}</b> with a friend.</p>}
+              </div>
+            )}
+            {messages.map((msg, idx) => {
               const isMe = msg.senderId === peer?.id;
+              const showSender = !isMe && (idx === 0 || messages[idx - 1].senderId !== msg.senderId);
+              
               return (
                 <div key={msg.id} className={`message-wrapper ${isMe ? 'me' : 'other'}`}>
-                  <div className="message-sender">{isMe ? 'You' : msg.senderName}</div>
+                  {showSender && <div className="message-sender">{msg.senderName}</div>}
                   <div className="message-bubble">
                     {renderMessageContent(msg)}
                   </div>
@@ -287,29 +306,34 @@ function App() {
               ref={fileInputRef}
               onChange={handleFileUpload}
             />
-            <button 
-              className="icon-btn" 
-              onClick={() => fileInputRef.current?.click()}
-              disabled={!connection}
-              title="Attach File"
-            >
-              <Paperclip size={20} />
-            </button>
-            <input 
-              type="text" 
-              className="chat-input"
-              placeholder="Type a message..."
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && sendMessage('text', inputValue)}
-              disabled={!connection}
-            />
+            
+            <div className="input-container">
+              <button 
+                className="attach-btn" 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={!connection}
+                title="Attach"
+              >
+                <Paperclip size={20} />
+              </button>
+              <input 
+                type="text" 
+                className="chat-input"
+                placeholder={connection ? "Message..." : "Waiting for peer..."}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && sendMessage('text', inputValue)}
+                disabled={!connection}
+                autoComplete="off"
+              />
+            </div>
+            
             <button 
               className="send-btn" 
               onClick={() => sendMessage('text', inputValue)}
               disabled={!connection || !inputValue.trim()}
             >
-              <Send size={18} />
+              <Send size={18} style={{ marginLeft: '2px' }} />
             </button>
           </div>
         </div>
