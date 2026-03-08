@@ -176,7 +176,7 @@ function App() {
                 <label>Session Code</label>
                 <input 
                   className="base-input" 
-                  placeholder="CODE or leave blank"
+                  placeholder="CODE (Optional)"
                   value={sessionCode}
                   onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
                 />
