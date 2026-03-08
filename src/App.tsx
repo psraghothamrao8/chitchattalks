@@ -133,7 +133,7 @@ function App() {
         setMessages(prev => mergeMessages(prev, incoming));
         for (const m of incoming) await saveMessage(sessionCode, m);
       } else if (data.type === 'delete-room') {
-        await localforage.createInstance({ name: 'ChitChatTalks', storeName: 'messages' }).removeItem(sessionCode);
+        await localforage.createInstance({ name: 'ChitChatTalksTalks', storeName: 'messages' }).removeItem(sessionCode);
         setMessages([]);
         exitToHome();
       } else if (data.type) {
@@ -217,7 +217,7 @@ function App() {
     connections.forEach(c => {
       if (c.open) c.send({ type: 'delete-room' });
     });
-    await localforage.createInstance({ name: 'ChitChatTalks', storeName: 'messages' }).removeItem(sessionCode);
+    await localforage.createInstance({ name: 'ChitChatTalksTalks', storeName: 'messages' }).removeItem(sessionCode);
     exitToHome();
   };
 
@@ -236,7 +236,7 @@ function App() {
         <div className="home-screen">
           <div className="home-content">
             <div className="brand">
-              <h1>ChitChat</h1>
+              <h1>ChitChatTalks</h1>
               <p>End-to-End P2P Messaging</p>
             </div>
             

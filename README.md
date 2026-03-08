@@ -1,6 +1,6 @@
-# ChitChat: Secure, Decentralized P2P Messaging
+# ChitChatTalks: Secure, Decentralized P2P Messaging
 
-ChitChat is a production-ready, serverless messaging application designed for absolute privacy. It leverages **WebRTC** for direct peer-to-peer communication and **IndexedDB** for localized data persistence, ensuring that your conversations never touch a central server or database.
+ChitChatTalks is a production-ready, serverless messaging application designed for absolute privacy. It leverages **WebRTC** for direct peer-to-peer communication and **IndexedDB** for localized data persistence, ensuring that your conversations never touch a central server or database.
 
 [![Deployment Status](https://github.com/psraghothamrao8/chitchattalks/actions/workflows/deploy.yml/badge.svg)](https://github.com/psraghothamrao8/chitchattalks/actions/workflows/deploy.yml)
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](http://creativecommons.org/licenses/by-nc-sa/4.0/)

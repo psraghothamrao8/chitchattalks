@@ -1,15 +1,15 @@
-# ChitChat: Engineering a Decentralized P2P Messaging Platform
+# ChitChatTalks: Engineering a Decentralized P2P Messaging Platform
 
-This guide provides a comprehensive technical breakdown of ChitChat's architecture. It is designed for software engineers and students to understand the mechanics of WebRTC, decentralized state management, and high-performance React patterns.
+This guide provides a comprehensive technical breakdown of ChitChatTalks's architecture. It is designed for software engineers and students to understand the mechanics of WebRTC, decentralized state management, and high-performance React patterns.
 
 ---
 
 ## 1. High-Level Architectural Philosophy
 
-ChitChat is built on the principle of **Zero-Knowledge Decentralization**. Traditional chat apps use a Client-Server model (User -> Server -> Database -> User). ChitChat eliminates the middleman.
+ChitChatTalks is built on the principle of **Zero-Knowledge Decentralization**. Traditional chat apps use a Client-Server model (User -> Server -> Database -> User). ChitChatTalks eliminates the middleman.
 
 ### The Network Topology
-ChitChat uses a **Dynamic Mesh Topology**:
+ChitChatTalks uses a **Dynamic Mesh Topology**:
 *   **The Room ID:** A specific string (e.g., `chitchat-MYCODE`) acts as a virtual rendezvous point.
 *   **The Host:** The first person to enter a room registers the "Host ID" on the signaling server.
 *   **The Clients:** Subsequent users join as clients and connect directly to the Host.
