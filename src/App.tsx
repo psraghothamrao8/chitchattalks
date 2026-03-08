@@ -18,6 +18,7 @@ function App() {
   const [inputValue, setInputValue] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState('');
+  const [isOwner, setIsOwner] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,6 +26,13 @@ function App() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Sync logic: When a new peer connects, send them the entire history
+  const syncHistory = (conn: DataConnection) => {
+    if (messages.length > 0) {
+      conn.send({ type: 'sync-history', content: messages });
+    }
+  };
 
   const handleCreateSession = () => {
     if (!userName.trim()) {
@@ -43,11 +51,14 @@ function App() {
       setPeer(newPeer);
       setView('chat');
       setIsConnecting(false);
+      setIsOwner(true); // First person is owner
     });
 
     newPeer.on('connection', (conn) => {
       setConnection(conn);
       setupConnectionListeners(conn, codeToUse);
+      // Sync history to the joining peer
+      setTimeout(() => syncHistory(conn), 1000);
     });
 
     newPeer.on('error', (err: any) => {
@@ -74,6 +85,7 @@ function App() {
         setupConnectionListeners(conn, sessionCode.toUpperCase());
         setView('chat');
         setIsConnecting(false);
+        setIsOwner(false);
       });
 
       conn.on('error', () => {
@@ -93,13 +105,25 @@ function App() {
     setMessages(history);
 
     conn.on('data', async (data: any) => {
-      if (data && data.type) {
+      if (!data) return;
+
+      if (data.type === 'sync-history') {
+        const syncedMessages = data.content as ChatMessage[];
+        setMessages(syncedMessages);
+        for (const msg of syncedMessages) {
+          await saveMessage(currentSession, msg);
+        }
+      } else if (data.type === 'transfer-owner') {
+        setIsOwner(true);
+      } else if (data.type) {
         setMessages((prev) => [...prev, data]);
         await saveMessage(currentSession, data);
       }
     });
 
-    conn.on('close', () => setConnection(null));
+    conn.on('close', () => {
+      setConnection(null);
+    });
   };
 
   const sendMessage = async (type: MessageType, content: string | ArrayBuffer, fileName?: string, fileType?: string) => {
@@ -138,6 +162,9 @@ function App() {
   };
 
   const leaveSession = () => {
+    if (connection && isOwner) {
+      connection.send({ type: 'transfer-owner' });
+    }
     if (connection) connection.close();
     if (peer) peer.destroy();
     setConnection(null);
@@ -145,6 +172,7 @@ function App() {
     setMessages([]);
     setSessionCode('');
     setView('home');
+    setIsOwner(false);
   };
 
   const renderContent = (msg: ChatMessage) => {
@@ -213,13 +241,15 @@ function App() {
                 <p onClick={() => navigator.clipboard.writeText(sessionCode)}>CODE: {sessionCode} <Copy size={10} /></p>
               </div>
             </div>
-            <button 
-              className="btn btn-secondary" 
-              style={{ height: '2.2rem', padding: '0 0.75rem', fontSize: '0.75rem', borderColor: '#ef4444', color: '#ef4444' }}
-              onClick={leaveSession}
-            >
-              End Session
-            </button>
+            {isOwner && (
+              <button 
+                className="btn btn-secondary" 
+                style={{ height: '2.2rem', padding: '0 0.75rem', fontSize: '0.75rem', borderColor: '#ef4444', color: '#ef4444' }}
+                onClick={leaveSession}
+              >
+                End Session
+              </button>
+            )}
           </div>
 
           <div className="msg-container">
