@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Peer from 'peerjs';
 import type { DataConnection } from 'peerjs';
-import { LogIn, Send, Paperclip, File as FileIcon, Copy, LogOut, MessageCircle, ChevronLeft } from 'lucide-react';
+import { Send, Paperclip, File as FileIcon, MessageCircle, ChevronLeft } from 'lucide-react';
 import type { ChatMessage, MessageType } from './lib/types';
 import { saveMessage, getMessages } from './lib/storage';
 import './App.css'; // Just clean up the default
@@ -342,7 +342,7 @@ function App() {
         </div>
       )}
     </div>
-  );  );
+  );
 }
 
 export default App;
