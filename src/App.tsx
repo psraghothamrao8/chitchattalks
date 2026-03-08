@@ -4,6 +4,7 @@ import type { DataConnection } from 'peerjs';
 import { Send, Paperclip, File as FileIcon, ChevronLeft, Copy } from 'lucide-react';
 import type { ChatMessage, MessageType } from './lib/types';
 import { saveMessage, getMessages } from './lib/storage';
+import localforage from 'localforage';
 import './index.css';
 
 const generateId = () => Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -18,7 +19,6 @@ function App() {
   const [inputValue, setInputValue] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState('');
-  const [isOwner, setIsOwner] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -51,7 +51,6 @@ function App() {
       setPeer(newPeer);
       setView('chat');
       setIsConnecting(false);
-      setIsOwner(true); // First person is owner
     });
 
     newPeer.on('connection', (conn) => {
@@ -85,7 +84,6 @@ function App() {
         setupConnectionListeners(conn, sessionCode.toUpperCase());
         setView('chat');
         setIsConnecting(false);
-        setIsOwner(false);
       });
 
       conn.on('error', () => {
@@ -113,8 +111,11 @@ function App() {
         for (const msg of syncedMessages) {
           await saveMessage(currentSession, msg);
         }
-      } else if (data.type === 'transfer-owner') {
-        setIsOwner(true);
+      } else if (data.type === 'delete-session') {
+        // Clear local storage and leave
+        await localforage.createInstance({ name: 'ChitChatTalks', storeName: 'messages' }).removeItem(currentSession);
+        setMessages([]);
+        leaveSessionDirect();
       } else if (data.type) {
         setMessages((prev) => [...prev, data]);
         await saveMessage(currentSession, data);
@@ -161,10 +162,7 @@ function App() {
     reader.readAsArrayBuffer(file);
   };
 
-  const leaveSession = () => {
-    if (connection && isOwner) {
-      connection.send({ type: 'transfer-owner' });
-    }
+  const leaveSessionDirect = () => {
     if (connection) connection.close();
     if (peer) peer.destroy();
     setConnection(null);
@@ -172,7 +170,19 @@ function App() {
     setMessages([]);
     setSessionCode('');
     setView('home');
-    setIsOwner(false);
+  };
+
+  const deleteSession = async () => {
+    if (!window.confirm('Delete session for everyone? All messages will be lost.')) return;
+    
+    if (connection) {
+      connection.send({ type: 'delete-session' });
+    }
+    
+    const currentSession = sessionCode.toUpperCase();
+    await localforage.createInstance({ name: 'ChitChatTalks', storeName: 'messages' }).removeItem(currentSession);
+    
+    leaveSessionDirect();
   };
 
   const renderContent = (msg: ChatMessage) => {
@@ -235,21 +245,19 @@ function App() {
         <div className="chat-view">
           <div className="chat-nav">
             <div className="nav-left">
-              <button className="action-icon" onClick={() => setView('home')}><ChevronLeft size={24} /></button>
+              <button className="action-icon" onClick={leaveSessionDirect}><ChevronLeft size={24} /></button>
               <div className="room-info">
                 <h2>{connection ? 'Connected' : 'Waiting...'}</h2>
                 <p onClick={() => navigator.clipboard.writeText(sessionCode)}>CODE: {sessionCode} <Copy size={10} /></p>
               </div>
             </div>
-            {isOwner && (
-              <button 
-                className="btn btn-secondary" 
-                style={{ height: '2.2rem', padding: '0 0.75rem', fontSize: '0.75rem', borderColor: '#ef4444', color: '#ef4444' }}
-                onClick={leaveSession}
-              >
-                End Session
-              </button>
-            )}
+            <button 
+              className="btn btn-secondary" 
+              style={{ height: '2.2rem', padding: '0 0.75rem', fontSize: '0.75rem', borderColor: '#ef4444', color: '#ef4444' }}
+              onClick={deleteSession}
+            >
+              Delete Session
+            </button>
           </div>
 
           <div className="msg-container">
