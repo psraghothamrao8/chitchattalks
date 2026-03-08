@@ -8,6 +8,7 @@ const messageStore = localforage.createInstance({
 
 export const saveMessage = async (sessionId: string, message: ChatMessage) => {
   const currentMessages = await getMessages(sessionId);
+  if (currentMessages.find(m => m.id === message.id)) return;
   currentMessages.push(message);
   await messageStore.setItem(sessionId, currentMessages);
 };
