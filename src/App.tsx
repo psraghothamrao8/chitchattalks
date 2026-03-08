@@ -192,20 +192,20 @@ function App() {
     <div className="app-container">
       {view === 'home' ? (
         <div className="home-container">
-          <div className="home-card">
+          <div className="home-card glass">
             <div className="home-header">
-              <h1><MessageCircle size={28} color="var(--primary)" /> ChitChat</h1>
-              <p>Secure peer-to-peer messaging</p>
+              <h1>ChitChat</h1>
+              <p>Private & Encrypted P2P</p>
             </div>
             
-            {error && <div style={{ color: '#ef4444', fontSize: '0.85rem', textAlign: 'center', backgroundColor: '#fef2f2', padding: '0.5rem', borderRadius: '8px' }}>{error}</div>}
+            {error && <div style={{ color: '#ef4444', fontSize: '0.85rem', textAlign: 'center', backgroundColor: 'var(--primary-glow)', padding: '0.75rem', borderRadius: '12px', fontWeight: '600' }}>{error}</div>}
 
             <div className="input-group">
-              <label>Your Name</label>
+              <label>Your Display Name</label>
               <input 
                 type="text" 
                 className="input-field" 
-                placeholder="E.g. Alex"
+                placeholder="What should we call you?"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleCreateSession()}
@@ -217,21 +217,19 @@ function App() {
               onClick={handleCreateSession}
               disabled={isConnecting || !userName.trim()}
             >
-              <LogIn size={18} />
-              {isConnecting ? 'Connecting...' : 'New Session'}
+              {isConnecting ? 'Starting...' : 'Create New Session'}
             </button>
 
-            <div className="divider">OR JOIN</div>
+            <div className="divider">or join with code</div>
 
             <div className="input-group">
-              <label>Session Code</label>
               <input 
                 type="text" 
                 className="input-field" 
                 placeholder="Enter 6-digit code"
                 value={sessionCode}
                 onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
-                style={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 'bold' }}
+                style={{ textTransform: 'uppercase', textAlign: 'center', fontSize: '1.25rem', letterSpacing: '0.15em', fontWeight: '800' }}
                 maxLength={6}
                 onKeyDown={(e) => e.key === 'Enter' && handleJoinSession()}
               />
@@ -241,43 +239,44 @@ function App() {
               className="btn-secondary" 
               onClick={handleJoinSession}
               disabled={isConnecting || !userName.trim() || !sessionCode.trim()}
+              style={{ border: 'none', background: 'transparent', textDecoration: 'underline', fontWeight: '700' }}
             >
-              Join Session
+              Join Existing Session
             </button>
           </div>
         </div>
       ) : (
         <div className="chat-container">
-          <div className="chat-header">
+          <div className="chat-header glass">
             <div className="chat-header-info">
-              <button className="back-btn" onClick={leaveSession} title="Leave">
-                <ChevronLeft size={24} />
+              <button className="back-btn" onClick={leaveSession} style={{ background: 'transparent' }}>
+                <ChevronLeft size={28} />
               </button>
               <div className="header-text">
-                <div className="header-title">
-                  {connection ? 'Connected' : 'Waiting...'}
-                  <div className={`status-dot ${!connection ? 'disconnected' : ''}`}></div>
+                <div className="header-title" style={{ fontSize: '1.1rem', letterSpacing: '-0.02em' }}>
+                  {connection ? 'Room Active' : 'Waiting...'}
                 </div>
                 <div 
                   className="session-badge" 
                   onClick={() => navigator.clipboard.writeText(sessionCode)}
-                  title="Copy code"
+                  style={{ opacity: 0.8 }}
                 >
-                  Code: <strong>{sessionCode}</strong> <Copy size={12} />
+                  Code: <span style={{ fontWeight: '800', color: 'var(--primary)' }}>{sessionCode}</span>
                 </div>
               </div>
             </div>
-            <button className="back-btn" onClick={leaveSession} title="Disconnect" style={{ color: '#ef4444' }}>
-              <LogOut size={20} />
-            </button>
+            <div className="status-indicator">
+               <div className={`status-dot ${!connection ? 'disconnected' : ''}`}></div>
+               {connection ? 'P2P Secure' : 'Offline'}
+            </div>
           </div>
 
           <div className="chat-messages">
             {messages.length === 0 && (
-              <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: '2rem', fontSize: '0.9rem' }}>
-                <MessageCircle size={32} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
-                <p>No messages yet.</p>
-                {!connection && <p style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>Share code <b>{sessionCode}</b> with a friend.</p>}
+              <div style={{ textAlign: 'center', margin: 'auto', opacity: 0.4 }}>
+                <MessageCircle size={64} style={{ marginBottom: '1rem' }} />
+                <p style={{ fontWeight: '600' }}>Encryption keys generated.</p>
+                <p style={{ fontSize: '0.8rem' }}>Share code to start chatting.</p>
               </div>
             )}
             {messages.map((msg, idx) => {
@@ -299,7 +298,7 @@ function App() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="chat-input-area">
+          <div className="chat-input-area glass" style={{ borderTop: '1px solid var(--border)', borderBottom: 'none' }}>
             <input 
               type="file" 
               className="hidden-file-input" 
@@ -307,19 +306,18 @@ function App() {
               onChange={handleFileUpload}
             />
             
-            <div className="input-container">
+            <div className="input-container" style={{ borderRadius: '20px' }}>
               <button 
                 className="attach-btn" 
                 onClick={() => fileInputRef.current?.click()}
                 disabled={!connection}
-                title="Attach"
               >
-                <Paperclip size={20} />
+                <Paperclip size={22} />
               </button>
               <input 
                 type="text" 
                 className="chat-input"
-                placeholder={connection ? "Message..." : "Waiting for peer..."}
+                placeholder="Secure message..."
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && sendMessage('text', inputValue)}
@@ -333,13 +331,13 @@ function App() {
               onClick={() => sendMessage('text', inputValue)}
               disabled={!connection || !inputValue.trim()}
             >
-              <Send size={18} style={{ marginLeft: '2px' }} />
+              <Send size={20} color="white" />
             </button>
           </div>
         </div>
       )}
     </div>
-  );
+  );  );
 }
 
 export default App;
