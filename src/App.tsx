@@ -137,6 +137,16 @@ function App() {
     reader.readAsArrayBuffer(file);
   };
 
+  const leaveSession = () => {
+    if (connection) connection.close();
+    if (peer) peer.destroy();
+    setConnection(null);
+    setPeer(null);
+    setMessages([]);
+    setSessionCode('');
+    setView('home');
+  };
+
   const renderContent = (msg: ChatMessage) => {
     if (msg.type === 'text') return msg.content as string;
     const blob = new Blob([msg.content], { type: msg.fileType });
@@ -203,6 +213,13 @@ function App() {
                 <p onClick={() => navigator.clipboard.writeText(sessionCode)}>CODE: {sessionCode} <Copy size={10} /></p>
               </div>
             </div>
+            <button 
+              className="btn btn-secondary" 
+              style={{ height: '2.2rem', padding: '0 0.75rem', fontSize: '0.75rem', borderColor: '#ef4444', color: '#ef4444' }}
+              onClick={leaveSession}
+            >
+              End Session
+            </button>
           </div>
 
           <div className="msg-container">
