@@ -34,13 +34,14 @@ function App() {
     setIsConnecting(true);
     setError('');
     
-    const newSessionCode = generateId();
-    const peerId = `chitchat-${newSessionCode}`;
+    // Use custom code if provided, otherwise generate one
+    const codeToUse = sessionCode.trim() || generateId();
+    const peerId = `chitchat-${codeToUse}`;
     
     const newPeer = new Peer(peerId);
     
     newPeer.on('open', () => {
-      setSessionCode(newSessionCode);
+      setSessionCode(codeToUse);
       setPeer(newPeer);
       setView('chat');
       setIsConnecting(false);
@@ -48,11 +49,15 @@ function App() {
 
     newPeer.on('connection', (conn) => {
       setConnection(conn);
-      setupConnectionListeners(conn, newSessionCode);
+      setupConnectionListeners(conn, codeToUse);
     });
 
     newPeer.on('error', (err) => {
-      setError('Failed to create: ' + err.message);
+      if (err.type === 'unavailable-id') {
+        setError('Session code already in use. Try another.');
+      } else {
+        setError('Failed to create: ' + err.message);
+      }
       setIsConnecting(false);
     });
   };
@@ -208,41 +213,41 @@ function App() {
                 placeholder="What should we call you?"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleCreateSession()}
               />
             </div>
 
-            <button 
-              className="btn-primary" 
-              onClick={handleCreateSession}
-              disabled={isConnecting || !userName.trim()}
-            >
-              {isConnecting ? 'Starting...' : 'Create New Session'}
-            </button>
-
-            <div className="divider">or join with code</div>
-
             <div className="input-group">
+              <label>Session Code (Optional for new)</label>
               <input 
                 type="text" 
                 className="input-field" 
-                placeholder="Enter 6-digit code"
+                placeholder="Custom code or leave blank"
                 value={sessionCode}
                 onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
-                style={{ textTransform: 'uppercase', textAlign: 'center', fontSize: '1.25rem', letterSpacing: '0.15em', fontWeight: '800' }}
-                maxLength={6}
-                onKeyDown={(e) => e.key === 'Enter' && handleJoinSession()}
+                style={{ textTransform: 'uppercase', textAlign: 'center', fontSize: '1.1rem', letterSpacing: '0.1em', fontWeight: '800' }}
+                maxLength={10}
               />
             </div>
 
-            <button 
-              className="btn-secondary" 
-              onClick={handleJoinSession}
-              disabled={isConnecting || !userName.trim() || !sessionCode.trim()}
-              style={{ border: 'none', background: 'transparent', textDecoration: 'underline', fontWeight: '700' }}
-            >
-              Join Existing Session
-            </button>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button 
+                className="btn-primary" 
+                onClick={handleCreateSession}
+                disabled={isConnecting || !userName.trim()}
+                style={{ flex: 1 }}
+              >
+                {isConnecting ? 'Starting...' : 'Create Room'}
+              </button>
+
+              <button 
+                className="btn-primary" 
+                onClick={handleJoinSession}
+                disabled={isConnecting || !userName.trim() || !sessionCode.trim()}
+                style={{ flex: 1, background: 'var(--bg-secondary)', color: 'var(--text-main)', border: '1px solid var(--border)' }}
+              >
+                Join Room
+              </button>
+            </div>
           </div>
         </div>
       ) : (
